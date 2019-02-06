@@ -16,8 +16,10 @@ If you import libraries to interact with maps (`map-keys`, `map-vals`, etc.), th
 
 ## License
 
+```
 Copyright © 2012-2019 Timothy Dean
 Copyright © 2017-2018 Workiva Inc.
+```
 
 Licensed under the Eclipse Public License 1.0 (the "License");
 you may not use this file except in compliance with the License.
