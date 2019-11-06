@@ -2,9 +2,8 @@
 ;; Copyright 2014-2019 Timothy Dean
 
 (ns humilia.core-test
-  (:require [clojure.test :refer :all]
-            [humilia.core :as c])
-  (:import [clojure.lang.MapEntry]))
+  (:require [clojure.test :refer [deftest testing is are]]
+            [humilia.core :as c]))
 
 (def alphabet
   "The modern English alphabet is a Latin alphabet consisting of 26 letters
@@ -43,6 +42,7 @@
 (def map-1 (zipmap alphabet (range)))
 (def map-2 (zipmap alphabet alphabet))
 (def map-3 (zipmap (range) alphabet))
+
 (deftest unit:map-entry-fns
   (testing "map-keys"
     (is (= (sort (seq map-2))
@@ -119,6 +119,7 @@
              (zipmap (take 10 alphabet) alphabet))))))
 
 (def coll-0 (filter even? (range 100)))
+
 (deftest unit:keep-fork
   (are [x] (= coll-0 x)
     (c/keep #(when (even? %) %) (range 100))
@@ -153,6 +154,7 @@
 
 (def coll-1 (group-by even? (range 100)))
 (def coll-2 (group-by even? ()))
+
 (deftest unit:group-by-fork
   (are [x] (= coll-1 x)
     (c/group-by even? (range 100))
@@ -167,54 +169,56 @@
 (def coll-4 (map #(if (even? %) (inc %) %) (range 1000)))
 (def coll-5 (map #(if (zero? (mod % 3)) (inc %) (dec %)) (range 1000)))
 (def coll-6 (map #(if (even? %) % nil) (range 100)))
+
 (deftest unit:piecewise-partition
   (are [x] (= x coll-3)
     (c/piecewise-map even? {true inc false dec} (range 1000))
-    (c/piecewise-pmap even? {true inc false dec} (range 1000))
+    #?(:clj (c/piecewise-pmap even? {true inc false dec} (range 1000)))
     (c/partition-map even? {true #(map inc %) false #(map dec %)} (range 1000))
-    (c/partition-pmap even? {true #(map inc %) false #(map dec %)} (range 1000)))
+    #?(:clj (c/partition-pmap even? {true #(map inc %) false #(map dec %)} (range 1000))))
   ;; testing default defaults:
   (are [x] (= x coll-4)
     (c/piecewise-map even? {true inc} (range 1000))
-    (c/piecewise-pmap even? {true inc} (range 1000))
+    #?(:clj (c/piecewise-pmap even? {true inc} (range 1000)))
     (c/partition-map even? {true #(map inc %)} (range 1000))
-    (c/partition-pmap even? {true #(map inc %)} (range 1000)))
+    #?(:clj (c/partition-pmap even? {true #(map inc %)} (range 1000))))
   ;; testing explicit defaults:
   (are [x] (= x coll-5)
     (c/piecewise-map #(mod % 3) {:default dec 0 inc} (range 1000))
-    (c/piecewise-pmap #(mod % 3) {:default dec 0 inc} (range 1000))
+    #?(:clj (c/piecewise-pmap #(mod % 3) {:default dec 0 inc} (range 1000)))
     (c/partition-map #(mod % 3) {:default #(map dec %) 0 #(map inc %)} (range 1000))
-    (c/partition-pmap #(mod % 3) {:default #(map dec %) 0 #(map inc %)} (range 1000)))
+    #?(:clj (c/partition-pmap #(mod % 3) {:default #(map dec %) 0 #(map inc %)} (range 1000))))
   (are [x] (= x ())
     (c/piecewise-map even? {true inc false dec} ())
-    (c/piecewise-pmap even? {true inc false dec} ())
+    #?(:clj (c/piecewise-pmap even? {true inc false dec} ()))
     (c/partition-map even? {true #(map inc %) false #(map dec %)} ())
-    (c/partition-pmap even? {true #(map inc %) false #(map dec %)} ())
+    #?(:clj (c/partition-pmap even? {true #(map inc %) false #(map dec %)} ()))
     (c/piecewise-map even? {true inc} ())
-    (c/piecewise-pmap even? {true inc} ())
+    #?(:clj (c/piecewise-pmap even? {true inc} ()))
     (c/partition-map even? {true #(map inc %)} ())
-    (c/partition-pmap even? {true #(map inc %)} ())
+    #?(:clj (c/partition-pmap even? {true #(map inc %)} ()))
     (c/piecewise-map #(mod % 3) {:default dec 0 inc} ())
-    (c/piecewise-pmap #(mod % 3) {:default dec 0 inc} ())
+    #?(:clj (c/piecewise-pmap #(mod % 3) {:default dec 0 inc} ()))
     (c/partition-map #(mod % 3) {:default #(map dec %) 0 #(map inc %)} ())
-    (c/partition-pmap #(mod % 3) {:default #(map dec %) 0 #(map inc %)} ()))
+    #?(:clj (c/partition-pmap #(mod % 3) {:default #(map dec %) 0 #(map inc %)} ())))
   (are [x] (= coll-6 x)
     (c/partition-map even? {false (constantly ())} (range 100))
     (c/partition-map even? {false (constantly nil)} (range 100))
-    (c/partition-pmap even? {false (constantly ())} (range 100))
-    (c/partition-pmap even? {false (constantly nil)} (range 100))))
+    #?(:clj (c/partition-pmap even? {false (constantly ())} (range 100)))
+    #?(:clj (c/partition-pmap even? {false (constantly nil)} (range 100)))))
 
-(deftest unit:locking-vswap!
-  (let [v1 (volatile! 0)
-        v2 (volatile! 0)
-        f (fn [x] (Thread/sleep (rand-int 20)) (inc x))
-        finished-1 (->> (for [n (range 30)]
-                          (future (vswap! v1 f)))
-                        (map deref)
-                        (doall))
-        finished-2 (->> (for [n (range 30)]
-                          (future (c/locking-vswap! v2 f)))
-                        (map deref)
-                        (doall))]
-    (is (not= @v1 30) "clojure.core/vswap! was strangely consistent!")
-    (is (= @v2 30) "utiliva.core/locking-vswap! was not consistent!")))
+#?(:clj
+   (deftest unit:locking-vswap!
+     (let [v1 (volatile! 0)
+           v2 (volatile! 0)
+           f (fn [x] (Thread/sleep (rand-int 20)) (inc x))
+           finished-1 (->> (for [n (range 30)]
+                             (future (vswap! v1 f)))
+                           (map deref)
+                           (doall))
+           finished-2 (->> (for [n (range 30)]
+                             (future (c/locking-vswap! v2 f)))
+                           (map deref)
+                           (doall))]
+       (is (not= @v1 30) "clojure.core/vswap! was strangely consistent!")
+       (is (= @v2 30) "utiliva.core/locking-vswap! was not consistent!"))))

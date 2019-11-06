@@ -2,7 +2,8 @@
 ;; Copyright 2017-2018 Workiva Inc.
 
 (ns humilia.comparator
-  (:refer-clojure :exclude [< <= > >= min max]))
+  (:refer-clojure :exclude [< <= > >= min max])
+  #?(:cljs (:require-macros humilia.comparator)))
 
 (defn <
   "Exactly like clojure.core/<, but requires an explicit comparator (of the -1/0/1 variety)."
@@ -86,12 +87,13 @@
          ~(compare-comp* syma symb (next fns))))
     `(~(first fns) ~syma ~symb)))
 
-(defmacro compare-comp
-  "Composes the comparators. Inlines everything. There's a better implementation somewhere."
-  [& fns]
-  (let [syma (gensym)
-        symb (gensym)]
-    `(fn [~syma ~symb] ~(compare-comp* syma symb fns))))
+#?(:clj
+   (defmacro compare-comp
+     "Composes the comparators. Inlines everything. There's a better implementation somewhere."
+     [& fns]
+     (let [syma (gensym)
+           symb (gensym)]
+       `(fn [~syma ~symb] ~(compare-comp* syma symb fns)))))
 
 ;; Constructing comparators intended to operate on sequences:
 
@@ -105,19 +107,20 @@
          ~(seq-comparator* x y (inc i) fs)))
     `(~f (nth ~x ~i) (nth ~y ~i))))
 
-(defmacro seq-comparator
-  "Builds a discriminating comparator for two vectors given a sequence of
+#?(:clj
+   (defmacro seq-comparator
+     "Builds a discriminating comparator for two vectors given a sequence of
    element-wise first-to-last comparators.
    eg: >  ((seq-comparator compare compare) [1 2] [1 1])
        => 1"
-  ([& fs]
-   (let [n (count fs)
-         x (gensym "x_")
-         y (gensym "y_")
-         fn-names (for [i (range (count fs))] (gensym))]
-     `(let ~(vec (interleave fn-names fs))
-        (fn [~x ~y]
-          ~(seq-comparator* x y 0 fn-names))))))
+     ([& fs]
+      (let [n (count fs)
+            x (gensym "x_")
+            y (gensym "y_")
+            fn-names (for [i (range (count fs))] (gensym))]
+        `(let ~(vec (interleave fn-names fs))
+           (fn [~x ~y]
+             ~(seq-comparator* x y 0 fn-names)))))))
 
 ;; Constructing comparators dependent upon projections:
 
@@ -131,23 +134,24 @@
          ~(proj-comparator* a b pfs)))
     `(~f (~p ~a) (~p ~b))))
 
-(defmacro proj-comparator
-  "Builds a discriminating comparator for two arbitrary objects given
+#?(:clj
+   (defmacro proj-comparator
+     "Builds a discriminating comparator for two arbitrary objects given
    an alternating sequence of projection functions and comparators
    for said projections
    eg: > ((proj-comparator :a compare :b compare) {:a 1 :b 2} {:a 1 :b 1})
        => 1"
-  ([& projs-and-cmps]
-   (assert (even? (count projs-and-cmps)) "projected tuple comparator requires an even number of forms as: proj comp")
-   (let [asym (gensym)
-         bsym (gensym)
-         cnt (/ (count projs-and-cmps) 2)
-         projs (take-nth 2 projs-and-cmps)
-         proj-names (for [i (range cnt)] (gensym))
-         cmps (take-nth 2 (rest projs-and-cmps))
-         cmp-names (for [i (range cnt)] (gensym))
-         proj-cmp-names (interleave proj-names cmp-names)]
-     `(let ~(vec (concat (interleave proj-names projs)
-                         (interleave cmp-names cmps)))
-        (fn [~asym ~bsym]
-          ~(proj-comparator* asym bsym (partition 2 proj-cmp-names)))))))
+     ([& projs-and-cmps]
+      (assert (even? (count projs-and-cmps)) "projected tuple comparator requires an even number of forms as: proj comp")
+      (let [asym (gensym)
+            bsym (gensym)
+            cnt (/ (count projs-and-cmps) 2)
+            projs (take-nth 2 projs-and-cmps)
+            proj-names (for [i (range cnt)] (gensym))
+            cmps (take-nth 2 (rest projs-and-cmps))
+            cmp-names (for [i (range cnt)] (gensym))
+            proj-cmp-names (interleave proj-names cmp-names)]
+        `(let ~(vec (concat (interleave proj-names projs)
+                            (interleave cmp-names cmps)))
+           (fn [~asym ~bsym]
+             ~(proj-comparator* asym bsym (partition 2 proj-cmp-names))))))))
