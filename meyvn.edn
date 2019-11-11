@@ -1,0 +1,11 @@
+{:pom
+ {:group-id "galdre",
+  :artifact-id "humilia",
+  :version "0.2.0",
+  :name "humilia"},
+ :packaging
+ {:jar
+  {:enabled true,
+   :remote-repository
+   {:id "clojars", :url "https://clojars.org/repo"}}},
+ :scm {:enabled true}}
