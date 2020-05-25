@@ -1,13 +1,40 @@
-;; Copyright 2013-2019 Timothy Dean
+;; Copyright 2013-2020 Timothy Dean
 ;; Copyright 2017-2018 Workiva Inc.
 
 (ns humilia.core
   #?(:clj
-     (:import [clojure.lang MapEntry IDeref]
-              [java.util PriorityQueue LinkedList])
+     (:import [clojure.lang MapEntry IDeref TransformerIterator RT]
+              [java.util PriorityQueue LinkedList Iterator])
      :cljs
      (:require-macros humilia.core))
   (:refer-clojure :exclude [keep group-by]))
+
+(defn unchunked-iterator-seq [iter]
+  (lazy-seq
+   (when ^boolean (.hasNext iter)
+     (cons (.next iter) (unchunked-iterator-seq iter)))))
+
+(defn drip
+  "Exactly like clojure.core/sequence, except IT DOES NOT CHUNK.
+  Useful for streaming data lazily when side effects are involved."
+  ([coll]
+   (if (seq? coll) coll
+       (or (seq coll) ())))
+  ([xform coll]
+   (or (unchunked-iterator-seq
+        #?(:clj
+           (TransformerIterator/create xform (RT/iter coll))
+           :cljs
+           (.create TransformerIterator xform (iter coll))))
+       ()))
+  ([xform coll & colls]
+   (or (unchunked-iterator-seq
+        #?(:clj
+           (->> (map #(RT/iter %) (cons coll colls))
+                (TransformerIterator/createMulti xform))
+           :cljs
+           (.createMulti TransformerIterator xform (map iter (cons coll colls)))))
+       ())))
 
 ;; https://gist.github.com/galdre/e1851f73f0de9d6ebbf847c91d908f5d
 

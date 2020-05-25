@@ -222,3 +222,34 @@
                            (doall))]
        (is (not= @v1 30) "clojure.core/vswap! was strangely consistent!")
        (is (= @v2 30) "utiliva.core/locking-vswap! was not consistent!"))))
+
+(deftest unit:drip
+  (testing "Single arity."
+    (are [x] (= (sequence x) (c/drip x))
+      nil
+      ()
+      []
+      (lazy-seq (range 3))
+      (vec (range 3))))
+  (testing "Double arity."
+    (are [a b] (= (sequence a b) (c/drip a b))
+      (map inc) (range 10)
+      (partition-all 3) (range 10)
+      (filter even?) (range 10)
+      (remove odd?) (vec (range 20))))
+  (testing "Multiple collections"
+    (are [a b c] (= (sequence a b c) (c/drip a b c))
+      (map +) [1 2] [3 4]
+      (comp (map +) (filter even?)) [1 2 3 4] [5 4 4 5]))
+  (testing "No chunking"
+    (let [side-effects (atom 0)
+          calc-with-side-effects (fn [x] (swap! side-effects inc) (inc x))
+          inputs (range 1000)
+          processed-groups (c/drip (comp (map calc-with-side-effects)
+                                         (partition-all 10))
+                                   inputs)]
+      (is (= 0 @side-effects)) ; 10 with clojure.core/sequence
+      (is (= (first processed-groups) (range 1 11)))
+      (is (= 10 @side-effects)) ; 330 with clojure.core/sequence
+      (is (= (second processed-groups) (range 11 21)))
+      (is (= 20 @side-effects))))) ; 330 with clojure.core/sequence
