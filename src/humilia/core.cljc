@@ -1,4 +1,4 @@
-;; Copyright 2013-2020 Timothy Dean
+;; Copyright 2013-2021 Timothy Dean
 ;; Copyright 2017-2018 Workiva Inc.
 
 (ns humilia.core
@@ -7,12 +7,26 @@
               [java.util PriorityQueue LinkedList Iterator])
      :cljs
      (:require-macros humilia.core))
-  (:refer-clojure :exclude [keep group-by]))
+  (:refer-clojure :exclude [keep group-by some->]))
 
 (defn unchunked-iterator-seq [iter]
   (lazy-seq
    (when ^boolean (.hasNext iter)
      (cons (.next iter) (unchunked-iterator-seq iter)))))
+
+(defmacro some->
+  "When expr is not nil, threads it into the first form (via ->),
+  and when that result is not nil, through the next etc.
+
+  This behaves identically to to clojure.core/some->, except it does
+  not eat compile-time metadata (e.g., typehints)."
+  [expr & forms]
+  (let [make-step (fn [input-g expr] `(when (some? ~input-g) (-> ~input-g ~expr)))
+        gs (map #(with-meta (gensym) (meta %)) (cons expr forms))
+        steps (->> (map make-step gs forms)
+                   (cons expr))]
+    `(let [~@(interleave gs steps)]
+       ~(last gs))))
 
 (defn drip
   "Exactly like clojure.core/sequence, except IT DOES NOT CHUNK.

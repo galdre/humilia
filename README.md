@@ -18,7 +18,7 @@ If you import libraries to interact with maps (`map-keys`, `map-vals`, etc.), th
 ## License
 
 ```
-Copyright © 2012-2019 Timothy Dean
+Copyright © 2012-2021 Timothy Dean
 Copyright © 2017-2018 Workiva Inc.
 ```
 

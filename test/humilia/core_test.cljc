@@ -1,5 +1,5 @@
 ;; Copyright 2017-2018 Workiva Inc.
-;; Copyright 2014-2019 Timothy Dean
+;; Copyright 2014-2021 Timothy Dean
 
 (ns humilia.core-test
   (:require [clojure.test :refer [deftest testing is are]]
@@ -253,3 +253,10 @@
       (is (= 10 @side-effects)) ; 330 with clojure.core/sequence
       (is (= (second processed-groups) (range 11 21)))
       (is (= 20 @side-effects))))) ; 330 with clojure.core/sequence
+
+(deftest unit:some->
+  (testing "clojure.core/some-> equivalence"
+    (is (nil? (some-> nil)))
+    (is (= 0 (some-> 0)))
+    (is (= -1 (some-> 1 (- 2))))
+    (is (nil? (some-> 1 ((constantly nil)) (- 2))))))
