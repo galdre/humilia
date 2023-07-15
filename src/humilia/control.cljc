@@ -55,6 +55,15 @@
           ~g))))
 
 #?(:clj
+   (defmacro locking-when
+     "Like locking, but only locks when lock? evaluates as true."
+     [lock? x & body]
+     `(let [body-fn# (fn [] ~@body)]
+        (if ~lock?
+          (locking ~x (body-fn#))
+          (body-fn#)))))
+
+#?(:clj
    (defmacro guarded-let
      "Binds symbols as in let. If an exception is thrown within the
   block of bindings, all symbols already successfully bound will
