@@ -5,7 +5,7 @@
 ---
 [![Clojars Project](https://img.shields.io/clojars/v/galdre/humilia.svg)](https://clojars.org/galdre/humilia)
 
-**humilia** is a collection of generally useful functions, much along the lines of [plumbing](https://github.com/plumatic/plumbing), [flatland/useful](https://github.com/flatland/useful), or [medley](https://github.com/weavejester/medley). This library contains code I've gradually collected over the last six years, and is a fork of [utiliva](https://github.com/Workiva/utiliva) (which I  no longer maintain).
+**humilia** is a collection of generally useful functions, much along the lines of [plumbing](https://github.com/plumatic/plumbing), [flatland/useful](https://github.com/flatland/useful), or [medley](https://github.com/weavejester/medley). This library contains code I've gradually collected over the last decade, and is a fork of [utiliva](https://github.com/Workiva/utiliva) (which is no longer maintained).
 
 ## Rationale
 
